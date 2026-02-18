@@ -1,0 +1,379 @@
+local uik = "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
+local wj = "MyHub"                     
+local xb = "solar:atom-bold"           
+local bj = nil                         
+
+local A = game:GetService("RunService")
+local B = (cloneref or clonereference or function(C) return C end)
+local D = game:GetService("ReplicatedStorage")
+local E = game:GetService("HttpService")
+
+local F
+
+do
+    local G, H = pcall(function()
+        return require("./src/Init")
+    end)
+
+    if G then
+        F = H
+    else 
+        if A:IsStudio() then
+            F = require(B(D:WaitForChild("WindUI"):WaitForChild("Init")))
+        else
+            F = loadstring(game:HttpGet(uik))()
+        end
+    end
+end
+
+local K = Color3.fromHex("#0055FF")   
+local L = Color3.fromHex("#FFA500")   
+local M = Color3.fromHex("#00AA00")   
+local N = Color3.fromHex("#888888")   
+local O = Color3.fromHex("#0066CC")   
+local P = Color3.fromHex("#FF8C00")   
+
+local J = F:CreateWindow({
+    Title = "<font color='#FFA500'>My</font> Hub",   
+    Folder = wj,
+    Icon = xb,
+    IconThemed = false,
+    IconSize = 10*2,
+    Background = bj,                    
+    Theme = "Dark",                      
+    NewElements = true,
+    Size = UDim2.fromOffset(500,390),
+    HideSearchBar = false,
+    User = {
+        Enabled = true,
+        Callback = function()
+        end,
+        Anonymous = false
+    },
+    OpenButton = {
+        Title = "<font color='#FFA500'>My</font> Hub",
+        Icon = "solar:settings-bold",    
+        CornerRadius = UDim.new(0.3,0),
+        StrokeThickness = 2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = true,
+        Scale = 1,
+        Color = ColorSequence.new(        
+            Color3.fromHex("#000000"), 
+            Color3.fromHex("#00FF00")
+        )
+    },
+})
+
+local UserInputService = game:GetService("UserInputService")
+local isUIVisible = true
+
+local function toggleUI()
+    if J.UIElements and J.UIElements.Main then
+        local mainFrame = J.UIElements.Main
+        isUIVisible = not isUIVisible
+        mainFrame.Visible = isUIVisible
+        if J.Toggle then
+            J:Toggle()
+        end
+    elseif J:FindFirstChild("Main") then
+        local mainFrame = J.Main
+        isUIVisible = not isUIVisible
+        mainFrame.Visible = isUIVisible
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.Semicolon then
+            toggleUI()
+        end
+    end
+end)
+
+task.spawn(function()
+    local mainContainer
+    if J.UIElements and J.UIElements.Main then
+        mainContainer = J.UIElements.Main
+    elseif J:FindFirstChild("Main") then
+        mainContainer = J.Main
+    end
+
+    if mainContainer then
+
+        mainContainer.BackgroundColor3 = Color3.new(0,0,0)
+        mainContainer.BackgroundTransparency = 0
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Name = "GreenStroke"
+        stroke.Thickness = 3
+        stroke.Color = Color3.new(1, 1, 1)
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local gradient = Instance.new("UIGradient")
+        gradient.Name = "GreenGradient"
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),    
+            ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 100, 0)),  
+            ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 200, 0)),  
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 0))     
+        })
+        gradient.Enabled = true
+        gradient.Offset = Vector2.new(0, 0)
+
+        gradient.Parent = stroke
+        stroke.Parent = mainContainer
+
+        task.spawn(function()
+            local rotationSpeed = 40
+            while mainContainer and mainContainer.Parent do
+                task.wait(0.01)
+                gradient.Rotation = (gradient.Rotation + rotationSpeed * 0.1) % 360
+            end
+        end)
+    end
+end)
+
+task.spawn(function()
+    task.wait(1)
+
+    local screenGui = F.ScreenGui
+
+    local blurEffect = Instance.new("BlurEffect")
+    blurEffect.Size = 0
+    blurEffect.Name = "WindUIMainBlur"
+
+    local depthOfField = Instance.new("DepthOfFieldEffect")
+    depthOfField.FarIntensity = 0
+    depthOfField.InFocusRadius = 0.1
+    depthOfField.NearIntensity = 1
+    depthOfField.Name = "WindUIDepthOfField"
+
+    local lighting = game:GetService("Lighting")
+
+    local originalEffects = {}
+
+    local function enableBlur()
+        for _, effect in pairs(lighting:GetChildren()) do
+            if effect:IsA("BlurEffect") or effect:IsA("DepthOfFieldEffect") then
+                originalEffects[effect] = {
+                    Enabled = effect.Enabled,
+                    Parent = effect.Parent
+                }
+                effect.Enabled = false
+            end
+        end
+
+        if game:GetService("Workspace").CurrentCamera then
+            for _, effect in pairs(game:GetService("Workspace").CurrentCamera:GetChildren()) do
+                if effect:IsA("BlurEffect") or effect:IsA("DepthOfFieldEffect") then
+                    originalEffects[effect] = {
+                        Enabled = effect.Enabled,
+                        Parent = effect.Parent
+                    }
+                    effect.Enabled = false
+                end
+            end
+        end
+
+        depthOfField.Parent = lighting
+        blurEffect.Parent = lighting
+
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local blurTween = tweenService:Create(blurEffect, tweenInfo, {Size = 10})
+        blurTween:Play()
+    end
+
+    local function disableBlur()
+        for effect, data in pairs(originalEffects) do
+            if effect and effect.Parent then
+                effect.Enabled = data.Enabled
+            end
+        end
+
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        local blurTween = tweenService:Create(blurEffect, tweenInfo, {Size = 0})
+        blurTween:Play()
+
+        blurTween.Completed:Connect(function()
+            blurEffect.Parent = nil
+            depthOfField.Parent = nil
+        end)
+    end
+
+    if J then
+        if J.UIElements and J.UIElements.Main then
+            J.UIElements.Main:GetPropertyChangedSignal("Visible"):Connect(function()
+                if J.UIElements.Main.Visible then
+                    enableBlur()
+                else
+                    disableBlur()
+                end
+            end)
+        end
+
+        J.Destroying:Connect(function()
+            disableBlur()
+        end)
+    end
+
+    if J and J.UIElements and J.UIElements.Main and J.UIElements.Main.Visible then
+        enableBlur()
+    end
+end)
+
+do
+    J:Tag({
+        Title = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+        Icon = "rbxassetid://7252023075",   
+        Color = L,                          
+        Border = false,
+    })
+end
+
+if F and F.InitComplete then
+    F.InitComplete:Wait()
+end
+
+local b6 = J:Section({ Title = "Elements" })
+local b7 = J:Section({ Title = "Config Usage" })
+local b8 = J:Section({ Title = "Other" })
+
+do
+    local b4 = J:Tab({
+        Title = "About WindUI",
+        Desc = "Description Example",
+        Icon = "solar:info-square-bold",
+        IconColor = N,
+        IconShape = "Square",
+        Border = true,
+    })
+
+    local b5 = b4:Section({ Title = "About WindUI" })
+
+    b5:Image({
+        Image = "https://raw.githubusercontent.com/ParKe001/ParKe/refs/heads/main/picture/retouch_2026011523381676.png", 
+        AspectRatio = "16:9",
+        Radius = 9,
+    })
+
+    b5:Space({ Columns = 3 })
+
+    b5:Section({
+        Title = "My Hub",
+        TextSize = 24,
+        FontWeight = Enum.FontWeight.SemiBold,
+    })
+
+    b5:Space()
+
+    b5:Section({
+        Title = "A powerful and stylish UI with custom orange/green/blue/black theme.\nGreen环绕边框，黑色主色，尽显专属风格。",
+        TextSize = 18,
+        TextTransparency = .35,
+        FontWeight = Enum.FontWeight.Medium,
+    })
+
+    b4:Space({ Columns = 4 })
+
+    b4:Button({
+        Title = "Export UI JSON (copy)",
+        Color = M,                           
+        Justify = "Center",
+        IconAlign = "Left",
+        Icon = "",
+        Callback = function()
+
+            F:Notify({
+                Title = "UI JSON",
+                Content = "Copied to Clipboard!"
+            })
+        end
+    })
+
+    b4:Space({ Columns = 1 })
+
+    b4:Button({
+        Title = "Destroy Window",
+        Color = P,                            
+        Justify = "Center",
+        Icon = "shredder",
+        IconAlign = "Left",
+        Callback = function()
+            J:Destroy()
+        end
+    })
+end
+
+do
+    local b9 = b6:Tab({
+        Title = "Overview",
+        Icon = "solar:home-2-bold",
+        IconColor = N,
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+do
+    local bi = b6:Tab({
+        Title = "Toggle",
+        Icon = "solar:check-square-bold",
+        IconColor = M,      
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+do
+    local bk = b6:Tab({
+        Title = "Button",
+        Icon = "solar:cursor-square-bold",
+        IconColor = O,      
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+do
+    local bm = b6:Tab({
+        Title = "Input",
+        Icon = "solar:password-minimalistic-input-bold",
+        IconColor = K,      
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+do
+    local bn = b6:Tab({
+        Title = "Slider",
+        Icon = "solar:square-transfer-horizontal-bold",
+        IconColor = M,      
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+do
+    local bp = b6:Tab({
+        Title = "Dropdown",
+        Icon = "solar:hamburger-menu-bold",
+        IconColor = L,      
+        IconShape = "Square",
+        Border = true,
+    })
+
+end
+
+if F and F.InitComplete then
+    F.InitComplete:Wait()
+end
